@@ -10,7 +10,7 @@ services:
     depends_on:
       - api
     environment:
-      VITE_API_BASE_URL: "http://172.31.75.14:8010"
+      VITE_API_BASE_URL: "http://172.31.75.14:8010/api"
       VITE_WEB_BASE_URL: "http://172.31.75.14:3010"
       VITE_ADMIN_BASE_URL: "http://172.31.75.14:3001"
       VITE_ADMIN_BASE_PATH: ""
@@ -32,6 +32,13 @@ services:
     depends_on:
       - api
       - web
+    environment:
+      VITE_API_BASE_URL: "http://172.31.75.14:8010/api"
+      VITE_ADMIN_BASE_URL: "http://172.31.75.14:3001/god-mode"
+      VITE_ADMIN_BASE_PATH: "/god-mode"
+      VITE_WEB_BASE_URL: "http://172.31.75.14:3010"
+      VITE_SPACE_BASE_URL: "http://172.31.75.14:3002"
+      VITE_LIVE_BASE_URL: "http://172.31.75.14:3100"
     ports:
       - "3001:3000"
 
