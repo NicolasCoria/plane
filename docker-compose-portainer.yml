@@ -1,0 +1,357 @@
+services:
+  web:
+    container_name: plane-web
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile.web
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      VITE_API_BASE_URL: "http://172.31.75.14:8000"
+      VITE_WEB_BASE_URL: "http://172.31.75.14:3000"
+      VITE_ADMIN_BASE_URL: "http://172.31.75.14:3001"
+      VITE_ADMIN_BASE_PATH: ""
+      VITE_SPACE_BASE_URL: "http://172.31.75.14:3002"
+      VITE_SPACE_BASE_PATH: ""
+      VITE_LIVE_BASE_URL: "http://172.31.75.14:3100"
+      VITE_LIVE_BASE_PATH: ""
+    ports:
+      - "3000:3000"
+
+  admin:
+    container_name: plane-admin
+    build:
+      context: .
+      dockerfile: ./apps/admin/Dockerfile.admin
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    ports:
+      - "3001:3001"
+
+  space:
+    container_name: plane-space
+    build:
+      context: .
+      dockerfile: ./apps/space/Dockerfile.space
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    ports:
+      - "3002:3002"
+
+  api:
+    container_name: plane-api
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    command: ./bin/docker-entrypoint-api.sh
+    depends_on:
+      - plane-db
+      - plane-redis
+      - plane-mq
+      - plane-minio
+    environment:
+      DEBUG: "0"
+      CORS_ALLOWED_ORIGINS: "http://172.31.75.14:3000,http://172.31.75.14:3001,http://172.31.75.14:3002,http://172.31.75.14:3100"
+
+      POSTGRES_USER: "plane"
+      POSTGRES_PASSWORD: "PlaneDB_2026!"
+      POSTGRES_HOST: "plane-db"
+      POSTGRES_DB: "plane"
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: "postgresql://plane:PlaneDB_2026!@plane-db:5432/plane"
+
+      REDIS_HOST: "plane-redis"
+      REDIS_PORT: "6379"
+      REDIS_URL: "redis://plane-redis:6379/"
+
+      RABBITMQ_HOST: "plane-mq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "plane"
+      RABBITMQ_PASSWORD: "PlaneMQ_2026!"
+      RABBITMQ_VHOST: "plane"
+
+      AWS_REGION: ""
+      AWS_ACCESS_KEY_ID: "planeaccess"
+      AWS_SECRET_ACCESS_KEY: "PlaneMinio_2026!"
+      AWS_S3_ENDPOINT_URL: "http://plane-minio:9000"
+      AWS_S3_BUCKET_NAME: "uploads"
+      FILE_SIZE_LIMIT: "5242880"
+      SIGNED_URL_EXPIRATION: "3600"
+      DOCKERIZED: "1"
+      USE_MINIO: "1"
+      MINIO_ENDPOINT_SSL: "0"
+
+      WEB_URL: "http://172.31.75.14:3000"
+      ADMIN_BASE_URL: "http://172.31.75.14:3001"
+      ADMIN_BASE_PATH: ""
+      SPACE_BASE_URL: "http://172.31.75.14:3002"
+      SPACE_BASE_PATH: ""
+      APP_BASE_URL: "http://172.31.75.14:3000"
+      APP_BASE_PATH: ""
+      LIVE_BASE_URL: "http://172.31.75.14:3100"
+      LIVE_BASE_PATH: ""
+      LIVE_SERVER_SECRET_KEY: "PlaneLiveSecretKey_2026_Lab"
+
+      HARD_DELETE_AFTER_DAYS: "60"
+      API_KEY_RATE_LIMIT: "60/minute"
+      GUNICORN_WORKERS: "2"
+    ports:
+      - "8000:8000"
+
+  worker:
+    container_name: plane-worker
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    command: ./bin/docker-entrypoint-worker.sh
+    depends_on:
+      - api
+      - plane-db
+      - plane-redis
+      - plane-mq
+      - plane-minio
+    environment:
+      DEBUG: "0"
+      POSTGRES_USER: "plane"
+      POSTGRES_PASSWORD: "PlaneDB_2026!"
+      POSTGRES_HOST: "plane-db"
+      POSTGRES_DB: "plane"
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: "postgresql://plane:PlaneDB_2026!@plane-db:5432/plane"
+
+      REDIS_HOST: "plane-redis"
+      REDIS_PORT: "6379"
+      REDIS_URL: "redis://plane-redis:6379/"
+
+      RABBITMQ_HOST: "plane-mq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "plane"
+      RABBITMQ_PASSWORD: "PlaneMQ_2026!"
+      RABBITMQ_VHOST: "plane"
+
+      AWS_REGION: ""
+      AWS_ACCESS_KEY_ID: "planeaccess"
+      AWS_SECRET_ACCESS_KEY: "PlaneMinio_2026!"
+      AWS_S3_ENDPOINT_URL: "http://plane-minio:9000"
+      AWS_S3_BUCKET_NAME: "uploads"
+      FILE_SIZE_LIMIT: "5242880"
+      SIGNED_URL_EXPIRATION: "3600"
+      DOCKERIZED: "1"
+      USE_MINIO: "1"
+      MINIO_ENDPOINT_SSL: "0"
+
+      WEB_URL: "http://172.31.75.14:3000"
+      ADMIN_BASE_URL: "http://172.31.75.14:3001"
+      ADMIN_BASE_PATH: ""
+      SPACE_BASE_URL: "http://172.31.75.14:3002"
+      SPACE_BASE_PATH: ""
+      APP_BASE_URL: "http://172.31.75.14:3000"
+      APP_BASE_PATH: ""
+      LIVE_BASE_URL: "http://172.31.75.14:3100"
+      LIVE_BASE_PATH: ""
+      LIVE_SERVER_SECRET_KEY: "PlaneLiveSecretKey_2026_Lab"
+
+  beat-worker:
+    container_name: plane-beat-worker
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    command: ./bin/docker-entrypoint-beat.sh
+    depends_on:
+      - api
+      - plane-db
+      - plane-redis
+      - plane-mq
+      - plane-minio
+    environment:
+      DEBUG: "0"
+      POSTGRES_USER: "plane"
+      POSTGRES_PASSWORD: "PlaneDB_2026!"
+      POSTGRES_HOST: "plane-db"
+      POSTGRES_DB: "plane"
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: "postgresql://plane:PlaneDB_2026!@plane-db:5432/plane"
+
+      REDIS_HOST: "plane-redis"
+      REDIS_PORT: "6379"
+      REDIS_URL: "redis://plane-redis:6379/"
+
+      RABBITMQ_HOST: "plane-mq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "plane"
+      RABBITMQ_PASSWORD: "PlaneMQ_2026!"
+      RABBITMQ_VHOST: "plane"
+
+      AWS_REGION: ""
+      AWS_ACCESS_KEY_ID: "planeaccess"
+      AWS_SECRET_ACCESS_KEY: "PlaneMinio_2026!"
+      AWS_S3_ENDPOINT_URL: "http://plane-minio:9000"
+      AWS_S3_BUCKET_NAME: "uploads"
+      FILE_SIZE_LIMIT: "5242880"
+      SIGNED_URL_EXPIRATION: "3600"
+      DOCKERIZED: "1"
+      USE_MINIO: "1"
+      MINIO_ENDPOINT_SSL: "0"
+
+      WEB_URL: "http://172.31.75.14:3000"
+      ADMIN_BASE_URL: "http://172.31.75.14:3001"
+      ADMIN_BASE_PATH: ""
+      SPACE_BASE_URL: "http://172.31.75.14:3002"
+      SPACE_BASE_PATH: ""
+      APP_BASE_URL: "http://172.31.75.14:3000"
+      APP_BASE_PATH: ""
+      LIVE_BASE_URL: "http://172.31.75.14:3100"
+      LIVE_BASE_PATH: ""
+      LIVE_SERVER_SECRET_KEY: "PlaneLiveSecretKey_2026_Lab"
+
+  migrator:
+    container_name: plane-migrator
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: "no"
+    command: ./bin/docker-entrypoint-migrator.sh
+    depends_on:
+      - plane-db
+      - plane-redis
+      - plane-mq
+      - plane-minio
+    environment:
+      DEBUG: "0"
+      POSTGRES_USER: "plane"
+      POSTGRES_PASSWORD: "PlaneDB_2026!"
+      POSTGRES_HOST: "plane-db"
+      POSTGRES_DB: "plane"
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: "postgresql://plane:PlaneDB_2026!@plane-db:5432/plane"
+
+      REDIS_HOST: "plane-redis"
+      REDIS_PORT: "6379"
+      REDIS_URL: "redis://plane-redis:6379/"
+
+      RABBITMQ_HOST: "plane-mq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "plane"
+      RABBITMQ_PASSWORD: "PlaneMQ_2026!"
+      RABBITMQ_VHOST: "plane"
+
+      AWS_REGION: ""
+      AWS_ACCESS_KEY_ID: "planeaccess"
+      AWS_SECRET_ACCESS_KEY: "PlaneMinio_2026!"
+      AWS_S3_ENDPOINT_URL: "http://plane-minio:9000"
+      AWS_S3_BUCKET_NAME: "uploads"
+      FILE_SIZE_LIMIT: "5242880"
+      SIGNED_URL_EXPIRATION: "3600"
+      DOCKERIZED: "1"
+      USE_MINIO: "1"
+      MINIO_ENDPOINT_SSL: "0"
+
+      WEB_URL: "http://172.31.75.14:3000"
+      ADMIN_BASE_URL: "http://172.31.75.14:3001"
+      ADMIN_BASE_PATH: ""
+      SPACE_BASE_URL: "http://172.31.75.14:3002"
+      SPACE_BASE_PATH: ""
+      APP_BASE_URL: "http://172.31.75.14:3000"
+      APP_BASE_PATH: ""
+      LIVE_BASE_URL: "http://172.31.75.14:3100"
+      LIVE_BASE_PATH: ""
+      LIVE_SERVER_SECRET_KEY: "PlaneLiveSecretKey_2026_Lab"
+
+  live:
+    container_name: plane-live
+    build:
+      context: .
+      dockerfile: ./apps/live/Dockerfile.live
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: unless-stopped
+    depends_on:
+      - api
+      - plane-redis
+    environment:
+      PORT: "3100"
+      API_BASE_URL: "http://172.31.75.14:8000"
+      WEB_BASE_URL: "http://172.31.75.14:3000"
+      LIVE_BASE_URL: "http://172.31.75.14:3100"
+      LIVE_BASE_PATH: ""
+      LIVE_SERVER_SECRET_KEY: "PlaneLiveSecretKey_2026_Lab"
+      REDIS_HOST: "plane-redis"
+      REDIS_PORT: "6379"
+      REDIS_URL: "redis://plane-redis:6379/"
+    ports:
+      - "3100:3100"
+
+  plane-db:
+    container_name: plane-db
+    image: postgres:15.7-alpine
+    restart: unless-stopped
+    command: postgres -c 'max_connections=1000'
+    environment:
+      POSTGRES_USER: "plane"
+      POSTGRES_PASSWORD: "PlaneDB_2026!"
+      POSTGRES_DB: "plane"
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - plane_pgdata:/var/lib/postgresql/data
+
+  plane-redis:
+    container_name: plane-redis
+    image: valkey/valkey:7.2.11-alpine
+    restart: unless-stopped
+    volumes:
+      - plane_redisdata:/data
+
+  plane-mq:
+    container_name: plane-mq
+    image: rabbitmq:3.13.6-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: "plane"
+      RABBITMQ_DEFAULT_PASS: "PlaneMQ_2026!"
+      RABBITMQ_DEFAULT_VHOST: "plane"
+    volumes:
+      - plane_rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+
+  plane-minio:
+    container_name: plane-minio
+    image: minio/minio
+    restart: unless-stopped
+    command: server /export --console-address ":9090"
+    environment:
+      MINIO_ROOT_USER: "planeaccess"
+      MINIO_ROOT_PASSWORD: "PlaneMinio_2026!"
+    volumes:
+      - plane_uploads:/export
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+
+volumes:
+  plane_pgdata:
+  plane_redisdata:
+  plane_rabbitmq_data:
+  plane_uploads:
