@@ -33,7 +33,7 @@ services:
       - api
       - web
     ports:
-      - "3001:80"
+      - "3001:3000"
 
   space:
     container_name: plane-space
